@@ -1,0 +1,2 @@
+# dynamic-page-animation-orchestrator-webw0rld123
+This Product manages the full lifecycle of dynamic product page configurations and animation settings — from initial agent-drafted proposals through performance-informed tuning to publication. It serves merchandisers and product managers who previously navigated separate configuration screens for page layouts, scroll sections, visual representation
