@@ -1,0 +1,338 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Page Config Drafter API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:8000" }
+  ],
+  "paths": {
+    "/v1/page-config/draft": {
+      "post": {
+        "summary": "Create a new page config draft",
+        "operationId": "create_draft",
+        "tags": ["page-config"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/DraftRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PageConfigResponse" }
+              }
+            }
+          },
+          "503": { "description": "KG Service or Provenance Store unavailable" }
+        }
+      }
+    },
+    "/v1/page-config/draft/{draft_id}/diff": {
+      "get": {
+        "summary": "Retrieve structured diff for approval surface",
+        "operationId": "get_diff",
+        "tags": ["page-config"],
+        "parameters": [
+          { "name": "draft_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diff retrieved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DiffResponse" }
+              }
+            }
+          },
+          "404": { "description": "Draft not found" }
+        }
+      }
+    },
+    "/v1/page-config/draft/{draft_id}/approve": {
+      "post": {
+        "summary": "Submit approval signal; persists config",
+        "operationId": "approve_draft",
+        "tags": ["page-config"],
+        "parameters": [
+          { "name": "draft_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ApproveRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft approved",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PageConfigResponse" }
+              }
+            }
+          },
+          "404": { "description": "Draft not found" },
+          "409": { "description": "Draft not in draft state" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    },
+    "/v1/page-config/draft/{draft_id}/reject": {
+      "post": {
+        "summary": "Submit rejection signal",
+        "operationId": "reject_draft",
+        "tags": ["page-config"],
+        "parameters": [
+          { "name": "draft_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RejectRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft rejected",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PageConfigResponse" }
+              }
+            }
+          },
+          "404": { "description": "Draft not found" },
+          "409": { "description": "Draft not in draft state" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    },
+    "/v1/page-config/{config_id}/rollback": {
+      "post": {
+        "summary": "Restore prior version from provenance trail",
+        "operationId": "rollback_config",
+        "tags": ["page-config"],
+        "parameters": [
+          { "name": "config_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config rolled back",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RollbackResponse" }
+              }
+            }
+          },
+          "404": { "description": "Config not found" },
+          "409": { "description": "No prior version available" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    },
+    "/v1/page-config/{config_id}/delete-proposal": {
+      "post": {
+        "summary": "Propose deletion; returns diff with unwind option",
+        "operationId": "propose_deletion",
+        "tags": ["page-config"],
+        "parameters": [
+          { "name": "config_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deletion proposed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteProposalResponse" }
+              }
+            }
+          },
+          "404": { "description": "Config not found" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    },
+    "/v1/page-config/{config_id}/delete-confirm": {
+      "post": {
+        "summary": "Execute confirmed deletion",
+        "operationId": "confirm_deletion",
+        "tags": ["page-config"],
+        "parameters": [
+          { "name": "config_id", "in": "path", "required": true, "schema": { "type": "string", "format": "uuid" } }
+        ],
+        "responses": {
+          "200": {
+            "description": "Config deleted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DeleteConfirmResponse" }
+              }
+            }
+          },
+          "404": { "description": "Config not found" },
+          "409": { "description": "Config not in pending_deletion state" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ScrollSectionInput": {
+        "type": "object",
+        "required": ["order", "content"],
+        "properties": {
+          "order": { "type": "integer" },
+          "content": { "type": "string" }
+        }
+      },
+      "VisualRepresentationInput": {
+        "type": "object",
+        "required": ["type", "url"],
+        "properties": {
+          "type": { "type": "string" },
+          "url": { "type": "string" }
+        }
+      },
+      "SourcingTimelineEventInput": {
+        "type": "object",
+        "required": ["event_type", "date"],
+        "properties": {
+          "event_type": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" }
+        }
+      },
+      "DraftRequest": {
+        "type": "object",
+        "required": ["product_id"],
+        "properties": {
+          "product_id": { "type": "string" },
+          "scroll_sections": { "type": "array", "items": { "$ref": "#/components/schemas/ScrollSectionInput" } },
+          "visual_representations": { "type": "array", "items": { "$ref": "#/components/schemas/VisualRepresentationInput" } },
+          "sourcing_timeline_events": { "type": "array", "items": { "$ref": "#/components/schemas/SourcingTimelineEventInput" } },
+          "justification": { "type": "string", "nullable": true }
+        }
+      },
+      "ApproveRequest": {
+        "type": "object",
+        "properties": {
+          "justification": { "type": "string", "nullable": true }
+        }
+      },
+      "RejectRequest": {
+        "type": "object",
+        "properties": {
+          "justification": { "type": "string", "nullable": true }
+        }
+      },
+      "ScrollSectionResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "page_config_id": { "type": "string", "format": "uuid" },
+          "order": { "type": "integer" },
+          "content": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "VisualRepresentationResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "page_config_id": { "type": "string", "format": "uuid" },
+          "type": { "type": "string" },
+          "url": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "SourcingTimelineEventResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "page_config_id": { "type": "string", "format": "uuid" },
+          "event_type": { "type": "string" },
+          "date": { "type": "string", "format": "date-time" },
+          "validated": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PageConfigResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "product_id": { "type": "string" },
+          "workflow_state": { "type": "string", "enum": ["draft", "approved", "rejected", "pending_deletion"] },
+          "version": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "scroll_sections": { "type": "array", "items": { "$ref": "#/components/schemas/ScrollSectionResponse" } },
+          "visual_representations": { "type": "array", "items": { "$ref": "#/components/schemas/VisualRepresentationResponse" } },
+          "sourcing_timeline_events": { "type": "array", "items": { "$ref": "#/components/schemas/SourcingTimelineEventResponse" } }
+        }
+      },
+      "CompletenessWarning": {
+        "type": "object",
+        "properties": {
+          "field": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "EventTypeWarning": {
+        "type": "object",
+        "properties": {
+          "event_type": { "type": "string" },
+          "message": { "type": "string" }
+        }
+      },
+      "DiffResponse": {
+        "type": "object",
+        "properties": {
+          "draft_id": { "type": "string", "format": "uuid" },
+          "product_id": { "type": "string" },
+          "workflow_state": { "type": "string" },
+          "scroll_sections": { "type": "array", "items": { "$ref": "#/components/schemas/ScrollSectionResponse" } },
+          "visual_representations": { "type": "array", "items": { "$ref": "#/components/schemas/VisualRepresentationResponse" } },
+          "sourcing_timeline_events": { "type": "array", "items": { "$ref": "#/components/schemas/SourcingTimelineEventResponse" } },
+          "completeness_warnings": { "type": "array", "items": { "$ref": "#/components/schemas/CompletenessWarning" } },
+          "event_type_warnings": { "type": "array", "items": { "$ref": "#/components/schemas/EventTypeWarning" } },
+          "unwind_option": { "type": "boolean" }
+        }
+      },
+      "RollbackResponse": {
+        "type": "object",
+        "properties": {
+          "config_id": { "type": "string", "format": "uuid" },
+          "restored_version": { "type": "integer" },
+          "message": { "type": "string" }
+        }
+      },
+      "DeleteProposalResponse": {
+        "type": "object",
+        "properties": {
+          "config_id": { "type": "string", "format": "uuid" },
+          "workflow_state": { "type": "string" },
+          "diff": { "$ref": "#/components/schemas/DiffResponse" },
+          "unwind_option": { "type": "boolean" },
+          "message": { "type": "string" }
+        }
+      },
+      "DeleteConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "config_id": { "type": "string", "format": "uuid" },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}
