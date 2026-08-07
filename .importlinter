@@ -1,0 +1,15 @@
+# Generated from the decision registry; do not edit by hand; regenerated on each run.
+
+[importlinter]
+root_packages =
+    app
+
+# decision: DEC-BAK-48 (Layered Module Boundaries for Agent Services)
+[importlinter:contract:1]
+name = api-must-not-import-db
+type = forbidden
+source_modules =
+    app.api
+forbidden_modules =
+    app.db
+    app.repositories

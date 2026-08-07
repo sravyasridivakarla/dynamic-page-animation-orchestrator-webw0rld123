@@ -1,0 +1,49 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: backend
+    ports:
+      - "5440:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  migrate:
+    build:
+      context: ./backend
+    command: ["alembic", "upgrade", "head"]
+    environment:
+      DATABASE_URL: "postgresql+psycopg://postgres:postgres@db:5432/backend"
+      KG_SERVICE_URL: "http://localhost:8001"
+      PROVENANCE_URL: "http://localhost:8002"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql+psycopg://postgres:postgres@db:5432/backend"
+      KG_SERVICE_URL: "${KG_SERVICE_URL:-http://localhost:8001}"
+      PROVENANCE_URL: "${PROVENANCE_URL:-http://localhost:8002}"
+      CORS_ORIGINS: "http://localhost:5173,http://localhost:3000"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    volumes:
+      - ./backend:/app
+
+volumes:
+  pgdata:
