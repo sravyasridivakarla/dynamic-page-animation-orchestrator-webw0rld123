@@ -1,0 +1,397 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Page Config Drafter API",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "http://localhost:8000" }
+  ],
+  "paths": {
+    "/v1/page-configs/draft": {
+      "post": {
+        "summary": "Generate a create draft for a new page config",
+        "operationId": "create_draft",
+        "tags": ["page-configs"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/CreateDraftRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DiffResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "503": { "description": "Knowledge Graph unavailable" }
+        }
+      }
+    },
+    "/v1/page-configs/approve": {
+      "post": {
+        "summary": "Approve a pending draft and persist it",
+        "operationId": "approve_draft",
+        "tags": ["page-configs"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ApproveRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft persisted",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ApproveResponse" }
+              }
+            }
+          },
+          "400": { "description": "Invalid draft state or parent not found" },
+          "401": { "description": "Unauthorized" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    },
+    "/v1/page-configs/{config_id}": {
+      "get": {
+        "summary": "Retrieve current state of a page config",
+        "operationId": "get_config",
+        "tags": ["page-configs"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Page config",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PageConfigResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Config not found" }
+        }
+      }
+    },
+    "/v1/page-configs/{config_id}/draft": {
+      "post": {
+        "summary": "Generate an update draft for an existing page config",
+        "operationId": "update_draft",
+        "tags": ["page-configs"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UpdateDraftRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Update draft generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DiffResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Config not found" },
+          "503": { "description": "Knowledge Graph unavailable" }
+        }
+      }
+    },
+    "/v1/page-configs/{config_id}/delete-draft": {
+      "post": {
+        "summary": "Generate a delete draft showing all records to be deleted",
+        "operationId": "delete_draft",
+        "tags": ["page-configs"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": { "type": "object" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Delete draft generated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/DiffResponse" }
+              }
+            }
+          },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Config not found" }
+        }
+      }
+    },
+    "/v1/page-configs/{config_id}/rollback": {
+      "post": {
+        "summary": "Restore a prior config version from the audit trail",
+        "operationId": "rollback_config",
+        "tags": ["page-configs"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "config_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "format": "uuid" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/RollbackRequest" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Config restored",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RollbackResponse" }
+              }
+            }
+          },
+          "400": { "description": "Parent not found" },
+          "401": { "description": "Unauthorized" },
+          "404": { "description": "Config not found" },
+          "503": { "description": "Provenance Store unavailable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "CreateDraftRequest": {
+        "type": "object",
+        "required": ["product_id"],
+        "properties": {
+          "product_id": { "type": "string" }
+        }
+      },
+      "UpdateDraftRequest": {
+        "type": "object",
+        "required": ["product_id"],
+        "properties": {
+          "product_id": { "type": "string" }
+        }
+      },
+      "ApproveRequest": {
+        "type": "object",
+        "required": ["approval_token", "approved"],
+        "properties": {
+          "approval_token": { "type": "string" },
+          "approved": { "type": "boolean" }
+        }
+      },
+      "ApproveResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string" }
+        }
+      },
+      "RollbackRequest": {
+        "type": "object",
+        "required": ["to_version"],
+        "properties": {
+          "to_version": { "type": "string", "format": "uuid" }
+        }
+      },
+      "RollbackResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "status": { "type": "string" }
+        }
+      },
+      "ScrollSectionDraft": {
+        "type": "object",
+        "required": ["position", "heading", "content"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "nullable": true },
+          "position": { "type": "integer" },
+          "heading": { "type": "string" },
+          "content": { "type": "string" },
+          "background_image_url": { "type": "string", "nullable": true }
+        }
+      },
+      "VisualRepresentationDraft": {
+        "type": "object",
+        "required": ["type", "url", "position"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "nullable": true },
+          "type": { "type": "string", "enum": ["IMAGE", "VIDEO", "CAROUSEL"] },
+          "url": { "type": "string" },
+          "alt_text": { "type": "string", "nullable": true },
+          "position": { "type": "integer" }
+        }
+      },
+      "SourcingTimelineEventDraft": {
+        "type": "object",
+        "required": ["timestamp", "event_type", "description"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "nullable": true },
+          "timestamp": { "type": "string", "format": "date-time" },
+          "event_type": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "PageConfigDraft": {
+        "type": "object",
+        "required": ["product_id", "page_title", "meta_description", "layout_type", "visibility_status"],
+        "properties": {
+          "id": { "type": "string", "format": "uuid", "nullable": true },
+          "product_id": { "type": "string" },
+          "page_title": { "type": "string" },
+          "meta_description": { "type": "string" },
+          "layout_type": { "type": "string", "enum": ["STANDARD", "HERO", "MINIMAL"] },
+          "visibility_status": { "type": "string", "enum": ["DRAFT", "PUBLISHED", "ARCHIVED"] },
+          "scroll_sections": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ScrollSectionDraft" }
+          },
+          "visual_representations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/VisualRepresentationDraft" }
+          },
+          "sourcing_timeline_events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SourcingTimelineEventDraft" }
+          },
+          "workflow_state": {
+            "type": "string",
+            "enum": ["DRAFT_PENDING", "APPROVED", "PERSISTED"]
+          },
+          "validation_warnings": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      },
+      "DiffChange": {
+        "type": "object",
+        "properties": {
+          "before": { "type": "string", "nullable": true },
+          "after": { "type": "string", "nullable": true }
+        }
+      },
+      "KGSource": {
+        "type": "object",
+        "required": ["field", "source", "contribution"],
+        "properties": {
+          "field": { "type": "string" },
+          "source": { "type": "string" },
+          "contribution": { "type": "string" }
+        }
+      },
+      "DiffResponse": {
+        "type": "object",
+        "required": ["operation", "draft", "approval_token"],
+        "properties": {
+          "operation": { "type": "string", "enum": ["CREATE", "UPDATE", "DELETE"] },
+          "draft": { "$ref": "#/components/schemas/PageConfigDraft" },
+          "prior_state": {
+            "oneOf": [
+              { "$ref": "#/components/schemas/PageConfigDraft" },
+              { "type": "null" }
+            ]
+          },
+          "changes": {
+            "type": "object",
+            "additionalProperties": { "$ref": "#/components/schemas/DiffChange" }
+          },
+          "kg_sources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/KGSource" }
+          },
+          "reasoning_trace": { "type": "string" },
+          "validation_warnings": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "approval_token": { "type": "string" }
+        }
+      },
+      "PageConfigResponse": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "format": "uuid" },
+          "product_id": { "type": "string" },
+          "page_title": { "type": "string" },
+          "meta_description": { "type": "string" },
+          "layout_type": { "type": "string", "enum": ["STANDARD", "HERO", "MINIMAL"] },
+          "visibility_status": { "type": "string", "enum": ["DRAFT", "PUBLISHED", "ARCHIVED"] },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "created_by": { "type": "string" },
+          "updated_by": { "type": "string" },
+          "scroll_sections": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/ScrollSectionDraft" }
+          },
+          "visual_representations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/VisualRepresentationDraft" }
+          },
+          "sourcing_timeline_events": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/SourcingTimelineEventDraft" }
+          }
+        }
+      }
+    }
+  }
+}

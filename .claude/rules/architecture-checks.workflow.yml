@@ -1,0 +1,18 @@
+# Generated from the decision registry; do not edit by hand; regenerated on each run.# This is the CI half of the architecture checks. Copy it to
+# .github/workflows/architecture-checks.yml to activate it. It is
+# staged here because creating workflow files requires a GitHub
+# token with the workflow scope, which the platform's push token
+# does not carry.
+
+name: Architecture checks
+on: [push, pull_request]
+jobs:
+  import-boundaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install import-linter
+      - run: lint-imports --config .importlinter
