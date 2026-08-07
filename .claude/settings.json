@@ -1,0 +1,16 @@
+{
+  "_arqence_generated": true,
+  "hooks": {
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "python3 .claude/hooks/decision_check.py",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  }
+}

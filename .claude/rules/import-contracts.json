@@ -1,0 +1,7 @@
+{
+  "api-must-not-import-db": {
+    "decision_id": "2f353c3b-3d6f-4d60-bca1-8c216f63a57e",
+    "public_id": "DEC-BAK-48",
+    "title": "Layered Module Boundaries for Agent Services"
+  }
+}
